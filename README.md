@@ -1,51 +1,54 @@
 # BOI DOCK
 
-一个更自由的 Chrome 新标签页。
+[Read this in Chinese](README.zh-CN.md)
 
-Chrome 默认的新标签页太规整了：固定位置、固定数量、固定逻辑。BOI DOCK 想做的事情很小，就是把这块地方还给你。常用网站想放多少放多少，想拖到哪就拖到哪，甚至叠在一起也没问题。
+A freer Chrome new tab page.
 
-![BOI DOCK 主界面](store-assets/screenshots/01-freeform-shortcuts-1280x800.png)
+Chrome's default new tab page is tidy, but rigid: fixed slots, fixed layout, fixed assumptions. BOI DOCK keeps the page quiet and gives the space back to you. Add as many shortcuts as you need, drag them anywhere, and overlap them if that is how your desk works.
 
-## 它能做什么
+![BOI DOCK home screen](store-assets/screenshots/01-freeform-shortcuts-1280x800.png)
 
-- 添加任意数量的快捷方式
-- 把图标拖到画布上的任意位置
-- 允许图标重叠，不做网格吸附
-- 从顶部搜索框搜索 Google 或直接打开网址
-- 在快捷库里筛选、打开、编辑、删除、复制网址
-- 新安装时保持空白，不预塞任何默认网站
+## What It Does
 
-## 安装
+- Adds unlimited shortcuts.
+- Lets every shortcut move freely on the canvas.
+- Allows overlapping shortcuts with no grid snapping.
+- Searches Google or opens URLs directly from the top bar.
+- Opens, filters, edits, deletes, and copies URLs from the library.
+- Starts empty, without bundled default shortcuts.
+- Switches between English and Chinese based on Chrome's UI language.
 
-现在可以用开发者模式加载：
+## Install
 
-1. 下载或克隆这个仓库。
-2. 打开 `chrome://extensions/`。
-3. 开启 `Developer mode`。
-4. 点击 `Load unpacked`。
-5. 选择这个项目目录。
+For local development:
 
-之后打开新标签页就能看到 BOI DOCK。
+1. Download or clone this repository.
+2. Open `chrome://extensions/`.
+3. Turn on `Developer mode`.
+4. Click `Load unpacked`.
+5. Select this project folder.
 
-## 开发
+Open a new tab and BOI DOCK will replace Chrome's default new tab page.
+
+## Development
 
 ```bash
 npm install
 npm test
 ```
 
-测试会用临时 Chromium 配置加载扩展，不会动你的日常 Chrome 数据。主要覆盖默认空状态、添加裸域名、拖拽、复制网址、快捷库跳转和之前修过的 UI 回归。
+The Playwright smoke test loads the extension with a temporary Chromium profile, so it does not touch your normal Chrome data.
 
-## 隐私
+## Privacy
 
-BOI DOCK 不需要账号，也没有自己的服务器。快捷方式、位置和快捷库状态都存在本机的 `chrome.storage.local`。
+BOI DOCK does not require an account and does not use a developer server. Shortcuts, positions, and library state are stored locally in `chrome.storage.local`.
 
-权限只有两个：
+Permissions:
 
-- `storage`：保存快捷方式和布局。
-- `clipboardWrite`：点击“复制网址”时写入剪贴板。
+- `storage`: saves shortcuts and layout.
+- `clipboardWrite`: copies a shortcut URL when you click `Copy URL`.
 
-站点图标会通过 Google favicon 服务按域名加载。
+Shortcut icons are loaded by domain through Google's favicon service.
 
 ## License
 

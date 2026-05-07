@@ -1,0 +1,55 @@
+# BOI DOCK
+
+[English](README.md)
+
+一个更自由的 Chrome 新标签页。
+
+Chrome 默认的新标签页太规整了：固定位置、固定数量、固定逻辑。BOI DOCK 想做的事情很小，就是把这块地方还给你。常用网站想放多少放多少，想拖到哪就拖到哪，甚至叠在一起也没问题。
+
+![BOI DOCK 主界面](store-assets/screenshots/01-freeform-shortcuts-1280x800.png)
+
+## 它能做什么
+
+- 添加任意数量的快捷方式。
+- 把图标拖到画布上的任意位置。
+- 允许图标重叠，不做网格吸附。
+- 从顶部搜索框搜索 Google 或直接打开网址。
+- 在快捷库里筛选、打开、编辑、删除、复制网址。
+- 新安装时保持空白，不预塞任何默认网站。
+- 根据 Chrome 界面语言自动显示中文或英文。
+
+## 安装
+
+现在可以用开发者模式加载：
+
+1. 下载或克隆这个仓库。
+2. 打开 `chrome://extensions/`。
+3. 开启 `Developer mode`。
+4. 点击 `Load unpacked`。
+5. 选择这个项目目录。
+
+之后打开新标签页就能看到 BOI DOCK。
+
+## 开发
+
+```bash
+npm install
+npm test
+```
+
+测试会用临时 Chromium 配置加载扩展，不会动你的日常 Chrome 数据。
+
+## 隐私
+
+BOI DOCK 不需要账号，也没有自己的服务器。快捷方式、位置和快捷库状态都存在本机的 `chrome.storage.local`。
+
+权限只有两个：
+
+- `storage`：保存快捷方式和布局。
+- `clipboardWrite`：点击“复制网址”时写入剪贴板。
+
+站点图标会通过 Google favicon 服务按域名加载。
+
+## License
+
+MIT

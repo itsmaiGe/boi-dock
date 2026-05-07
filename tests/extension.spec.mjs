@@ -11,8 +11,8 @@ const extensionPath = path.resolve(__dirname, "..");
 const iconSizes = [16, 32, 48, 128];
 const execFileAsync = promisify(execFile);
 
-test("new tab override supports unlimited freeform shortcuts", async () => {
-  test.setTimeout(60000);
+test("new tab override supports English freeform shortcuts", async () => {
+  test.setTimeout(70000);
 
   for (const size of iconSizes) {
     const stat = await fs.stat(path.join(extensionPath, "icons", `icon${size}.png`));
@@ -20,50 +20,29 @@ test("new tab override supports unlimited freeform shortcuts", async () => {
   }
   await expect(fs.stat(path.join(extensionPath, "icons", "source-icon.svg"))).rejects.toThrow();
 
-  const userDataDir = await fs.mkdtemp(path.join(os.tmpdir(), "hug-dock-profile-"));
-  const screenshotDir = process.env.SCREENSHOT_DIR || path.join(os.tmpdir(), "hug-dock-screenshots");
+  const screenshotDir = process.env.SCREENSHOT_DIR || path.join(os.tmpdir(), "boi-dock-screenshots");
   await fs.mkdir(screenshotDir, { recursive: true });
 
-  const launchOptions = {
-    headless: false,
-    args: [
-      `--disable-extensions-except=${extensionPath}`,
-      `--load-extension=${extensionPath}`,
-      "--no-first-run",
-      "--no-default-browser-check",
-      "--disable-features=Translate",
-      "--window-size=1440,1000"
-    ],
-    viewport: { width: 1440, height: 1000 }
-  };
-
-  if (process.env.CHROME_PATH) {
-    launchOptions.executablePath = process.env.CHROME_PATH;
-  }
-
-  const context = await chromium.launchPersistentContext(userDataDir, launchOptions);
-  const page = context.pages()[0] || await context.newPage();
-  const consoleErrors = [];
-  page.on("console", (message) => {
-    const text = message.text();
-    const benignResource404 = text.includes("Failed to load resource") && text.includes("status of 404");
-    if (message.type() === "error" && !benignResource404) consoleErrors.push(text);
-  });
-  page.on("pageerror", (error) => consoleErrors.push(error.message));
+  const session = await launchExtension({ language: "en-US", viewport: { width: 1440, height: 1000 } });
+  const { context, page, userDataDir, consoleErrors } = session;
 
   try {
-    await page.goto("chrome://newtab/");
-    await page.waitForLoadState("domcontentloaded");
+    await gotoNewTab(page);
 
     await expect(page).toHaveTitle("BOI DOCK");
+    await expect(page.locator("html")).toHaveAttribute("lang", "en");
     await expect(page.getByTestId("workspace")).toBeVisible();
-    await expect(page.getByTestId("search-input")).toBeVisible();
+    await expect(page.getByTestId("search-input")).toHaveAttribute("placeholder", "Search Google or enter a URL");
     await expect(page.getByTestId("library-toggle")).toBeVisible();
+    await expect(page.getByTestId("add-shortcut")).toContainText("Add");
+    await expect(page.locator(".library-header h2")).toHaveText("Library");
     await expect(page.getByTestId("arrange-shortcuts")).toHaveCount(0);
     await expect(page.locator("#floatingAdd")).toHaveCount(0);
+    await expect(page.getByText("快捷库")).toHaveCount(0);
     await expect(page.getByText("BOI DOCK")).toBeVisible();
     await expect(page.locator(".brand-mark img")).toBeVisible();
     await expect(page.locator(".brand-mark svg")).toHaveCount(0);
+
     const brandStyle = await page.locator(".brand-mark").evaluate((node) => {
       const style = getComputedStyle(node);
       return {
@@ -82,11 +61,10 @@ test("new tab override supports unlimited freeform shortcuts", async () => {
     });
     expect(searchCenterOffset).toBeLessThan(4);
 
-    const startingCount = await page.locator(".shortcut-tile").count();
-    expect(startingCount).toBe(0);
-    await expect(page.locator(".empty-library")).toHaveText("没有匹配项");
-    await expect(page.locator("#shortcutCount")).toHaveText("0 个捷径");
-    await expect(page.locator("#libraryMeta")).toHaveText("0 个捷径");
+    expect(await page.locator(".shortcut-tile").count()).toBe(0);
+    await expect(page.locator(".empty-library")).toHaveText("No matching shortcuts");
+    await expect(page.locator("#shortcutCount")).toHaveText("0 shortcuts");
+    await expect(page.locator("#libraryMeta")).toHaveText("0 shortcuts");
 
     await page.getByTestId("add-shortcut").hover();
     await expect(page.getByTestId("add-shortcut")).toHaveCSS("background-color", "rgb(36, 41, 47)");
@@ -94,20 +72,21 @@ test("new tab override supports unlimited freeform shortcuts", async () => {
     await expect(page.getByTestId("add-shortcut")).toHaveCSS("box-shadow", "none");
 
     await page.getByTestId("add-shortcut").click();
+    await expect(page.getByText("Color")).toHaveCount(0);
     await expect(page.getByText("颜色")).toHaveCount(0);
     await expect(page.locator("#shortcutColor")).toHaveCount(0);
     await expect(page.locator("#colorPalette")).toHaveCount(0);
-    await expect(page.locator("#shortcutUrl")).toHaveAttribute("placeholder", "输入网址或域名");
-    await page.getByLabel("名称").fill("Codex Smoke");
+    await expect(page.locator("#shortcutUrl")).toHaveAttribute("placeholder", "Enter URL or domain");
+    await page.getByLabel("Title").fill("Codex Smoke");
     await expect(page.locator("#shortcutUrl")).toHaveAttribute("type", "text");
     await page.locator("#shortcutUrl").fill("aixiejuben.com");
-    await page.getByRole("button", { name: "保存" }).click();
+    await page.getByRole("button", { name: "Save" }).click();
 
     const createdTile = page.locator('.shortcut-tile[data-title="Codex Smoke"]');
     await expect(createdTile).toBeVisible();
     await expect(page.locator(".shortcut-tile")).toHaveCount(1);
-    await expect(page.locator("#shortcutCount")).toHaveText("1 个捷径");
-    await expect(page.locator("#libraryMeta")).toHaveText("1 个捷径");
+    await expect(page.locator("#shortcutCount")).toHaveText("1 shortcut");
+    await expect(page.locator("#libraryMeta")).toHaveText("1 shortcut");
 
     const firstLibraryRow = page.locator(".library-row").first();
     await firstLibraryRow.hover();
@@ -159,10 +138,10 @@ test("new tab override supports unlimited freeform shortcuts", async () => {
     await expect(page).toHaveTitle("BOI DOCK");
 
     await page.locator('.shortcut-tile[data-title="Codex Smoke"] [data-tile-menu]').click();
-    await expect(page.getByRole("menuitem", { name: "置顶" })).toHaveCount(0);
+    await expect(page.getByRole("menuitem", { name: "Pin" })).toHaveCount(0);
 
     const beforeCopyCount = await page.locator(".shortcut-tile").count();
-    await page.getByRole("menuitem", { name: "复制网址" }).click();
+    await page.getByRole("menuitem", { name: "Copy URL" }).click();
     await expect(page.locator(".shortcut-tile")).toHaveCount(beforeCopyCount);
     await expect(page.locator('.shortcut-tile[data-title="Codex Smoke Copy"]')).toHaveCount(0);
     await expect.poll(async () => (await execFileAsync("pbpaste")).stdout, { timeout: 5000 }).toBe("https://aixiejuben.com/");
@@ -176,10 +155,10 @@ test("new tab override supports unlimited freeform shortcuts", async () => {
     }, undefined, { timeout: 5000 });
 
     await page.locator('.shortcut-tile[data-title="Codex Smoke"] [data-tile-menu]').click();
-    await page.getByRole("menuitem", { name: "编辑" }).click();
-    await expect(page.getByText("颜色")).toHaveCount(0);
+    await page.getByRole("menuitem", { name: "Edit" }).click();
+    await expect(page.getByText("Color")).toHaveCount(0);
     await expect(page.locator("#shortcutColor")).toHaveCount(0);
-    await page.getByRole("button", { name: "保存" }).click();
+    await page.getByRole("button", { name: "Save" }).click();
     await expect(createdTile.locator(".shortcut-icon")).toHaveCSS("background-color", "rgb(255, 255, 255)");
     const createdId = await createdTile.getAttribute("data-id");
     await expect(page.locator(`.library-row[data-id="${createdId}"] .library-row-icon`)).toHaveCSS("background-color", "rgb(255, 255, 255)");
@@ -222,3 +201,77 @@ test("new tab override supports unlimited freeform shortcuts", async () => {
     await fs.rm(userDataDir, { recursive: true, force: true });
   }
 });
+
+test("new tab override follows Chinese Chrome UI language", async () => {
+  test.setTimeout(45000);
+
+  const session = await launchExtension({ language: "zh-CN", viewport: { width: 1280, height: 860 } });
+  const { context, page, userDataDir, consoleErrors } = session;
+
+  try {
+    await gotoNewTab(page);
+
+    await expect(page.locator("html")).toHaveAttribute("lang", "zh-CN");
+    await expect(page.getByTestId("search-input")).toHaveAttribute("placeholder", "搜索 Google 或输入网址");
+    await expect(page.getByTestId("add-shortcut")).toContainText("添加");
+    await expect(page.locator(".library-header h2")).toHaveText("快捷库");
+    await expect(page.locator(".empty-library")).toHaveText("没有匹配项");
+    await expect(page.locator("#shortcutCount")).toHaveText("0 个捷径");
+    await expect(page.locator("#libraryMeta")).toHaveText("0 个捷径");
+
+    await page.getByTestId("add-shortcut").click();
+    await expect(page.locator("#dialogTitle")).toHaveText("添加快捷方式");
+    await expect(page.getByLabel("名称")).toBeVisible();
+    await expect(page.locator("#shortcutUrl")).toHaveAttribute("placeholder", "输入网址或域名");
+    await expect(page.getByRole("button", { name: "保存" })).toBeVisible();
+    await page.getByRole("button", { name: "取消" }).click();
+
+    expect(consoleErrors).toEqual([]);
+  } finally {
+    await context.close();
+    await fs.rm(userDataDir, { recursive: true, force: true });
+  }
+});
+
+async function launchExtension({ language, viewport }) {
+  const userDataDir = await fs.mkdtemp(path.join(os.tmpdir(), "boi-dock-profile-"));
+  const launchOptions = {
+    headless: false,
+    args: [
+      `--disable-extensions-except=${extensionPath}`,
+      `--load-extension=${extensionPath}`,
+      `--lang=${language}`,
+      "--no-first-run",
+      "--no-default-browser-check",
+      "--disable-features=Translate",
+      `--window-size=${viewport.width},${viewport.height}`
+    ],
+    locale: language,
+    viewport
+  };
+
+  if (process.env.CHROME_PATH) {
+    launchOptions.executablePath = process.env.CHROME_PATH;
+  }
+
+  const context = await chromium.launchPersistentContext(userDataDir, launchOptions);
+  const page = context.pages()[0] || await context.newPage();
+  const consoleErrors = [];
+  const trackPage = (targetPage) => {
+    targetPage.on("console", (message) => {
+      const text = message.text();
+      const benignResource404 = text.includes("Failed to load resource") && text.includes("status of 404");
+      if (message.type() === "error" && !benignResource404) consoleErrors.push(text);
+    });
+    targetPage.on("pageerror", (error) => consoleErrors.push(error.message));
+  };
+
+  trackPage(page);
+  context.on("page", trackPage);
+  return { context, page, userDataDir, consoleErrors };
+}
+
+async function gotoNewTab(page) {
+  await page.goto("chrome://newtab/");
+  await page.waitForLoadState("domcontentloaded");
+}
