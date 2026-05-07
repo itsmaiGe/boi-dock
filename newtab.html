@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>BOI DOCK</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand" aria-label="BOI DOCK">
+          <span class="brand-mark" aria-hidden="true">
+            <img src="icons/boi-cat-face-256.png" alt="">
+          </span>
+          <span class="brand-name">BOI DOCK</span>
+        </div>
+
+        <form id="searchForm" class="search" role="search" autocomplete="off">
+          <span class="search-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path d="M10.7 18.4a7.7 7.7 0 1 1 5.4-2.2l4.1 4.1-1.8 1.8-4.1-4.1a7.6 7.6 0 0 1-3.6.4Zm0-2.6a5.1 5.1 0 1 0 0-10.2 5.1 5.1 0 0 0 0 10.2Z" fill="currentColor"/>
+            </svg>
+          </span>
+          <input id="searchInput" data-testid="search-input" name="q" type="search" placeholder="搜索 Google 或输入网址" aria-label="搜索 Google 或输入网址" spellcheck="false">
+          <button class="icon-button search-submit" type="submit" aria-label="搜索">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 12h12.2l-5.1-5.1L13.8 5l8.2 8.2-8.2 8.2-1.7-1.9 5.1-5.1H5V12Z" fill="currentColor"/>
+            </svg>
+          </button>
+        </form>
+
+        <nav class="toolbar" aria-label="快捷操作">
+          <button id="libraryToggle" class="tool-button is-active" type="button" data-testid="library-toggle" title="快捷库" aria-label="快捷库">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 5h14v2H5V5Zm0 6h14v2H5v-2Zm0 6h14v2H5v-2Z" fill="currentColor"/>
+            </svg>
+          </button>
+          <button id="addButton" class="add-button" type="button" data-testid="add-shortcut">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6V5Z" fill="currentColor"/>
+            </svg>
+            <span>添加</span>
+          </button>
+        </nav>
+      </header>
+
+      <main id="workspace" class="workspace" data-testid="workspace" aria-label="快捷访问画布">
+        <div class="paper-grid" aria-hidden="true"></div>
+        <div class="status-chip" aria-live="polite">
+          <span id="clockText">--:--</span>
+          <span id="shortcutCount">0 个捷径</span>
+        </div>
+        <div id="shortcutLayer" class="shortcut-layer"></div>
+      </main>
+
+      <aside id="libraryPanel" class="library-panel" aria-label="快捷库">
+        <div class="library-header">
+          <div>
+            <h2>快捷库</h2>
+            <p id="libraryMeta">0 个捷径</p>
+          </div>
+          <button id="closeLibrary" class="icon-button" type="button" aria-label="关闭快捷库">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="m6.4 5 12.6 12.6-1.4 1.4L5 6.4 6.4 5Zm12.6 1.4L6.4 19 5 17.6 17.6 5 19 6.4Z" fill="currentColor"/>
+            </svg>
+          </button>
+        </div>
+        <label class="library-search">
+          <span aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path d="M10.5 17a6.5 6.5 0 1 1 4.6-1.9l3.9 3.9-1.5 1.5-3.9-3.9A6.5 6.5 0 0 1 10.5 17Zm0-2.2a4.3 4.3 0 1 0 0-8.6 4.3 4.3 0 0 0 0 8.6Z" fill="currentColor"/>
+            </svg>
+          </span>
+          <input id="libraryFilter" type="search" placeholder="筛选快捷方式" aria-label="筛选快捷方式">
+        </label>
+        <div id="libraryList" class="library-list"></div>
+      </aside>
+
+      <div id="tileMenu" class="tile-menu" role="menu" hidden>
+        <button type="button" data-menu-action="copy-url" role="menuitem">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h9v2H9v7H7V7Zm4 4h7v7h-7v-7Zm2 2v3h3v-3h-3Z" fill="currentColor"/></svg>
+          复制网址
+        </button>
+        <button type="button" data-menu-action="edit" role="menuitem">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m16.9 4.2 2.9 2.9-9.8 9.8-3.5.7.7-3.5 9.7-9.9Zm-1.4 3.4-6.4 6.5-.2 1 1-.2 6.5-6.4-.9-.9Z" fill="currentColor"/></svg>
+          编辑
+        </button>
+        <button type="button" data-menu-action="delete" role="menuitem" class="danger">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5h8l.8 2H21v2H3V7h4.2L8 5Zm1 6h2v7H9v-7Zm4 0h2v7h-2v-7ZM6 10h12l-.8 10H6.8L6 10Z" fill="currentColor"/></svg>
+          删除
+        </button>
+      </div>
+
+      <dialog id="shortcutDialog" class="shortcut-dialog" aria-labelledby="dialogTitle">
+        <form id="shortcutForm" class="shortcut-form" method="dialog">
+          <div class="dialog-header">
+            <h2 id="dialogTitle">添加快捷方式</h2>
+            <button class="icon-button" type="button" data-dialog-close aria-label="关闭">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="m6.4 5 12.6 12.6-1.4 1.4L5 6.4 6.4 5Zm12.6 1.4L6.4 19 5 17.6 17.6 5 19 6.4Z" fill="currentColor"/>
+              </svg>
+            </button>
+          </div>
+          <label class="field">
+            <span>名称</span>
+            <input id="shortcutTitle" name="title" type="text" required maxlength="48" autocomplete="off">
+          </label>
+          <label class="field">
+            <span>网址</span>
+            <input id="shortcutUrl" name="url" type="text" required inputmode="url" placeholder="输入网址或域名" autocomplete="off" spellcheck="false">
+          </label>
+          <p id="formError" class="form-error" aria-live="polite"></p>
+          <div class="dialog-actions">
+            <button type="button" class="secondary-button" data-dialog-close>取消</button>
+            <button type="submit" class="primary-button">保存</button>
+          </div>
+        </form>
+      </dialog>
+
+      <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>

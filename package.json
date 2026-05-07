@@ -1,0 +1,13 @@
+{
+  "name": "boi-dock-new-tab",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:store": "node scripts/build-store-assets.mjs",
+    "test": "playwright test tests/extension.spec.mjs --headed --reporter=line"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.59.1"
+  }
+}
