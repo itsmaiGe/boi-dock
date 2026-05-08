@@ -2,36 +2,30 @@
 
 [中文](README.zh-CN.md)
 
-A freer Chrome new tab page.
-
-Chrome's default new tab page is tidy, but rigid: fixed slots, fixed layout, fixed assumptions. BOI DOCK keeps the page quiet and gives the space back to you. Add as many shortcuts as you need, drag them anywhere, and overlap them if that is how your desk works.
+BOI DOCK is a Chrome new tab extension for building a freeform shortcut workspace. It replaces the fixed shortcut grid with a quiet canvas where shortcuts can be placed anywhere.
 
 ![BOI DOCK home screen](docs/screenshots/boi-dock-home.png)
 
+## Features
+
+- Unlimited shortcuts.
+- Freeform positioning with no grid, snapping, or fixed slots.
+- Support for overlapping shortcuts.
+- Search bar for Google search and direct URL navigation.
+- Shortcut library for opening, filtering, editing, deleting, and copying links.
+- Custom shortcut icons for sites without a reliable favicon.
+
 ![Adding a shortcut in BOI DOCK](docs/screenshots/boi-dock-add-shortcut.png)
 
-## What It Does
+## Installation
 
-- Adds unlimited shortcuts.
-- Lets every shortcut move freely on the canvas.
-- Allows overlapping shortcuts with no grid snapping.
-- Searches Google or opens URLs directly from the top bar.
-- Opens, filters, edits, deletes, and copies URLs from the library.
-- Supports custom shortcut icons when a site's favicon is missing.
-- Starts empty, without bundled default shortcuts.
-- Switches between English and Chinese based on Chrome's UI language.
-
-## Install
-
-For local development:
-
-1. Download or clone this repository.
-2. Open `chrome://extensions/`.
-3. Turn on `Developer mode`.
+1. Clone or download this repository.
+2. Open `chrome://extensions/` in Chrome.
+3. Enable `Developer mode`.
 4. Click `Load unpacked`.
-5. Select this project folder.
+5. Select the project directory.
 
-Open a new tab and BOI DOCK will replace Chrome's default new tab page.
+BOI DOCK will replace Chrome's default new tab page after the extension is loaded.
 
 ## Development
 
@@ -40,18 +34,18 @@ npm install
 npm test
 ```
 
-The Playwright smoke test loads the extension with a temporary Chromium profile, so it does not touch your normal Chrome data.
+The test suite launches Chromium with a temporary profile and loads the extension as an unpacked extension.
 
 ## Privacy
 
-BOI DOCK does not require an account and does not use a developer server. Shortcuts, positions, and library state are stored locally in `chrome.storage.local`.
+BOI DOCK has no account system, no backend service, and no analytics. Shortcuts, positions, and custom uploaded icons are stored locally with `chrome.storage.local`.
 
 Permissions:
 
-- `storage`: saves shortcuts and layout.
-- `clipboardWrite`: copies a shortcut URL when you click `Copy URL`.
+- `storage`: stores shortcuts and layout data.
+- `clipboardWrite`: copies a shortcut URL when requested by the user.
 
-Shortcut icons are loaded by domain through Google's favicon service unless you set a custom icon. Uploaded icons stay in local storage; custom icon URLs load from the URL you provide.
+Default favicons are loaded through Google's favicon service. Custom icon URLs are loaded only when explicitly configured by the user.
 
 ## License
 
