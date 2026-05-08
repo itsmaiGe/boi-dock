@@ -759,6 +759,17 @@ button {
   box-shadow: 0 0 0 4px rgba(255, 212, 59, .24);
 }
 
+.icon-input-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.icon-upload-button {
+  min-width: 82px;
+}
+
 .form-error {
   min-height: 18px;
   margin: -4px 0 0;

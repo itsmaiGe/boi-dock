@@ -15,6 +15,7 @@ BOI DOCK turns Chrome's new tab page into a clean shortcut canvas.
 - Add as many shortcuts as you want.
 - Drag every shortcut anywhere on the canvas, including overlapping positions.
 - Search, open, edit, delete, and copy URLs from the library.
+- Add a custom icon when a site's favicon is missing.
 - Use the top bar for Google search or direct URL navigation.
 - Start from an empty page, with no bundled default shortcuts.
 
@@ -29,4 +30,4 @@ BOI DOCK replaces the Chrome new tab page with a freeform shortcut and search wo
 
 ## Data and privacy
 
-BOI DOCK does not require an account, does not use a developer server, and does not collect personal data. Shortcuts are stored locally in chrome.storage.local. Shortcut favicons are loaded by domain through Google's favicon service.
+BOI DOCK does not require an account, does not use a developer server, and does not collect personal data. Shortcuts and uploaded custom icons are stored locally in chrome.storage.local. Default shortcut favicons are loaded by domain through Google's favicon service. Custom icon URLs load only from the URL entered by the user.

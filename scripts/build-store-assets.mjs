@@ -197,12 +197,12 @@ async function createScreenshots(browser) {
   await page.addInitScript((items) => {
     localStorage.setItem("hug-dock-state-v1", JSON.stringify({
       shortcuts: items,
-      libraryOpen: true,
       zCounter: 80
     }));
   }, sampleShortcuts());
   await page.goto(newtabUrl, { waitUntil: "domcontentloaded" });
   await page.waitForSelector(".shortcut-tile");
+  await page.getByTestId("library-toggle").click();
   await page.waitForTimeout(700);
   await page.screenshot({
     path: path.join(screenshotDir, "01-freeform-shortcuts-1280x800.png"),
@@ -260,6 +260,7 @@ BOI DOCK turns Chrome's new tab page into a clean shortcut canvas.
 - Add as many shortcuts as you want.
 - Drag every shortcut anywhere on the canvas, including overlapping positions.
 - Search, open, edit, delete, and copy URLs from the library.
+- Add a custom icon when a site's favicon is missing.
 - Use the top bar for Google search or direct URL navigation.
 - Start from an empty page, with no bundled default shortcuts.
 
@@ -274,7 +275,7 @@ BOI DOCK replaces the Chrome new tab page with a freeform shortcut and search wo
 
 ## Data and privacy
 
-BOI DOCK does not require an account, does not use a developer server, and does not collect personal data. Shortcuts are stored locally in chrome.storage.local. Shortcut favicons are loaded by domain through Google's favicon service.
+BOI DOCK does not require an account, does not use a developer server, and does not collect personal data. Shortcuts and uploaded custom icons are stored locally in chrome.storage.local. Default shortcut favicons are loaded by domain through Google's favicon service. Custom icon URLs load only from the URL entered by the user.
 `;
 
   const chinese = `# BOI DOCK Chrome Web Store Listing
@@ -294,6 +295,7 @@ BOI DOCK 把 Chrome 新标签页变成一个轻量、干净、可以自由摆放
 - 快捷方式数量不设应用层上限。
 - 每个图标都可以拖到任意位置，也可以重叠摆放。
 - 快捷库支持筛选、打开、编辑、删除和复制网址。
+- 网站图标加载不出来时，可以给快捷方式自定义图标。
 - 支持 Google 搜索，也支持直接输入网址跳转。
 - 新安装默认没有任何快捷方式，用户自己决定放什么。
 
@@ -308,7 +310,7 @@ BOI DOCK 把 Chrome 新标签页变成一个轻量、干净、可以自由摆放
 
 ## 数据与隐私
 
-扩展不要求登录，不向开发者服务器发送数据，也不收集个人身份信息。快捷方式数据保存在用户本机的 chrome.storage.local。快捷图标使用 Google favicon 服务按域名加载站点图标。
+扩展不要求登录，不向开发者服务器发送数据，也不收集个人身份信息。快捷方式和上传的自定义图标保存在用户本机的 chrome.storage.local。默认快捷图标使用 Google favicon 服务按域名加载站点图标；如果用户填写自定义图标网址，页面只会加载用户自己填写的那个地址。
 
 ## 素材清单
 

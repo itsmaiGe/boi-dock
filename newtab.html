@@ -31,7 +31,7 @@
         </form>
 
         <nav class="toolbar" aria-label="Quick actions" data-i18n-aria="quickActions">
-          <button id="libraryToggle" class="tool-button is-active" type="button" data-testid="library-toggle" title="Library" aria-label="Library" data-i18n-title="library" data-i18n-aria="library">
+          <button id="libraryToggle" class="tool-button" type="button" data-testid="library-toggle" title="Library" aria-label="Library" aria-controls="libraryPanel" aria-expanded="false" data-i18n-title="library" data-i18n-aria="library">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M5 5h14v2H5V5Zm0 6h14v2H5v-2Zm0 6h14v2H5v-2Z" fill="currentColor"/>
             </svg>
@@ -54,7 +54,7 @@
         <div id="shortcutLayer" class="shortcut-layer"></div>
       </main>
 
-      <aside id="libraryPanel" class="library-panel" aria-label="Library" data-i18n-aria="library">
+      <aside id="libraryPanel" class="library-panel is-hidden" aria-label="Library" data-i18n-aria="library">
         <div class="library-header">
           <div>
             <h2 data-i18n="library">Library</h2>
@@ -110,6 +110,14 @@
             <span data-i18n="urlLabel">URL</span>
             <input id="shortcutUrl" name="url" type="text" required inputmode="url" placeholder="Enter URL or domain" autocomplete="off" spellcheck="false" data-i18n-placeholder="urlPlaceholder">
           </label>
+          <div class="field">
+            <label for="shortcutIcon" data-i18n="iconLabel">Icon</label>
+            <div class="icon-input-row">
+              <input id="shortcutIcon" name="icon" type="text" inputmode="url" placeholder="Optional icon URL" autocomplete="off" spellcheck="false" data-i18n-placeholder="iconPlaceholder">
+              <button id="iconUploadButton" type="button" class="secondary-button icon-upload-button" data-i18n="uploadIcon">Upload</button>
+            </div>
+            <input id="shortcutIconFile" type="file" accept="image/*" hidden>
+          </div>
           <p id="formError" class="form-error" aria-live="polite"></p>
           <div class="dialog-actions">
             <button type="button" class="secondary-button" data-dialog-close data-i18n="cancel">Cancel</button>

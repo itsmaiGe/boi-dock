@@ -2,7 +2,7 @@
   const STORAGE_KEY = "hug-dock-state-v1";
   const state = {
     shortcuts: [],
-    libraryOpen: true,
+    libraryOpen: false,
     zCounter: 40,
     filter: ""
   };
@@ -26,6 +26,9 @@
     dialogTitle: document.getElementById("dialogTitle"),
     titleInput: document.getElementById("shortcutTitle"),
     urlInput: document.getElementById("shortcutUrl"),
+    iconInput: document.getElementById("shortcutIcon"),
+    iconFileInput: document.getElementById("shortcutIconFile"),
+    iconUploadButton: document.getElementById("iconUploadButton"),
     formError: document.getElementById("formError"),
     tileMenu: document.getElementById("tileMenu"),
     toast: document.getElementById("toast")
@@ -51,6 +54,9 @@
       titleLabel: "Title",
       urlLabel: "URL",
       urlPlaceholder: "Enter URL or domain",
+      iconLabel: "Icon",
+      iconPlaceholder: "Optional icon URL",
+      uploadIcon: "Upload",
       cancel: "Cancel",
       save: "Save",
       emptyLibrary: "No matching shortcuts",
@@ -59,6 +65,7 @@
       editShortcutLabel: "Edit {title}",
       deleteShortcutLabel: "Delete {title}",
       invalidUrl: "Invalid URL",
+      invalidIcon: "Icon must be an HTTPS image URL or uploaded image",
       newShortcut: "New Shortcut",
       updated: "Updated",
       added: "Added",
@@ -86,6 +93,9 @@
       titleLabel: "名称",
       urlLabel: "网址",
       urlPlaceholder: "输入网址或域名",
+      iconLabel: "图标",
+      iconPlaceholder: "可选图标网址",
+      uploadIcon: "上传",
       cancel: "取消",
       save: "保存",
       emptyLibrary: "没有匹配项",
@@ -94,6 +104,7 @@
       editShortcutLabel: "编辑 {title}",
       deleteShortcutLabel: "删除 {title}",
       invalidUrl: "网址格式不正确",
+      invalidIcon: "图标必须是 HTTPS 图片网址或上传的图片",
       newShortcut: "新快捷方式",
       updated: "已更新",
       added: "已添加",
@@ -112,8 +123,8 @@
   let saveTimer = 0;
   let toastTimer = 0;
 
-  function shortcut(title, url, x, y) {
-    return {
+  function shortcut(title, url, x, y, icon = "") {
+    const item = {
       id: crypto.randomUUID(),
       title,
       url,
@@ -121,6 +132,8 @@
       y,
       z: 1
     };
+    if (icon) item.icon = icon;
+    return item;
   }
 
   function hasChromeStorage() {
@@ -156,9 +169,11 @@
     let needsSave = false;
     if (stored && Array.isArray(stored.shortcuts)) {
       state.shortcuts = stored.shortcuts.map(normalizeShortcut).filter(Boolean);
-      state.libraryOpen = stored.libraryOpen !== false;
+      state.libraryOpen = false;
       state.zCounter = Number.isFinite(stored.zCounter) ? stored.zCounter : maxZ(state.shortcuts) + 1;
-      needsSave = Boolean(stored.version) || stored.shortcuts.some((item) => "color" in item || "colorActive" in item);
+      needsSave = Boolean(stored.version)
+        || "libraryOpen" in stored
+        || stored.shortcuts.some((item) => "color" in item || "colorActive" in item);
     } else {
       state.shortcuts = [];
       state.zCounter = 0;
@@ -176,7 +191,8 @@
     const url = normalizeUrl(item.url);
     if (!url) return null;
 
-    return {
+    const icon = normalizeIconUrl(item.icon);
+    const normalized = {
       id: item.id || crypto.randomUUID(),
       title: String(item.title || domainName(url) || t("newShortcut")).slice(0, 48),
       url,
@@ -184,6 +200,8 @@
       y: numberOr(item.y, 180),
       z: numberOr(item.z, 1)
     };
+    if (icon) normalized.icon = icon;
+    return normalized;
   }
 
   function numberOr(value, fallback) {
@@ -199,7 +217,6 @@
     saveTimer = setTimeout(() => {
       setStoredState({
         shortcuts: state.shortcuts,
-        libraryOpen: state.libraryOpen,
         zCounter: state.zCounter
       });
     }, delay);
@@ -212,6 +229,7 @@
     els.libraryMeta.textContent = countLabel(state.shortcuts.length);
     els.libraryPanel.classList.toggle("is-hidden", !state.libraryOpen);
     els.libraryToggle.classList.toggle("is-active", state.libraryOpen);
+    els.libraryToggle.setAttribute("aria-expanded", String(state.libraryOpen));
   }
 
   function renderShortcuts() {
@@ -227,7 +245,7 @@
       >
         <div class="shortcut-card">
           <span class="shortcut-icon">
-            <img src="${faviconUrl(item.url)}" alt="" draggable="false">
+            <img src="${escapeAttr(shortcutImageSrc(item))}" alt="" draggable="false">
             <span class="shortcut-initial" aria-hidden="true">${escapeHtml(initialFor(item.title))}</span>
           </span>
           <button class="tile-more" type="button" data-tile-menu aria-label="${escapeAttr(t("shortcutMenu", { title: item.title }))}">
@@ -262,7 +280,7 @@
       <article class="library-row" data-id="${escapeAttr(item.id)}">
         <button class="library-row-main" type="button" data-library-action="open" aria-label="${escapeAttr(t("openShortcut", { title: item.title }))}">
           <span class="library-row-icon" aria-hidden="true">
-            <img src="${faviconUrl(item.url)}" alt="" draggable="false">
+            <img src="${escapeAttr(shortcutImageSrc(item))}" alt="" draggable="false">
             <span class="library-row-initial">${escapeHtml(initialFor(item.title))}</span>
           </span>
           <span class="library-row-text">
@@ -304,6 +322,8 @@
     els.libraryList.addEventListener("click", handleLibraryAction);
     els.tileMenu.addEventListener("click", handleMenuAction);
     els.form.addEventListener("submit", saveFromDialog);
+    els.iconUploadButton.addEventListener("click", () => els.iconFileInput.click());
+    els.iconFileInput.addEventListener("change", handleIconFile);
     els.dialog.addEventListener("click", (event) => {
       if (event.target === els.dialog || event.target.closest("[data-dialog-close]")) {
         closeDialog();
@@ -511,6 +531,7 @@
     els.dialogTitle.textContent = item ? t("editShortcut") : t("addShortcut");
     els.titleInput.value = item?.title || "";
     els.urlInput.value = item?.url || "";
+    els.iconInput.value = item?.icon || "";
     els.formError.textContent = "";
     els.dialog.showModal();
     requestAnimationFrame(() => (item ? els.titleInput : els.urlInput).focus());
@@ -519,6 +540,7 @@
   function closeDialog() {
     els.dialog.close();
     els.form.reset();
+    els.iconFileInput.value = "";
     els.formError.textContent = "";
   }
 
@@ -526,9 +548,16 @@
     event.preventDefault();
     const title = els.titleInput.value.trim();
     const url = normalizeUrl(els.urlInput.value);
+    const rawIcon = els.iconInput.value.trim();
+    const icon = normalizeIconUrl(rawIcon);
 
     if (!url) {
       els.formError.textContent = t("invalidUrl");
+      return;
+    }
+
+    if (rawIcon && !icon) {
+      els.formError.textContent = t("invalidIcon");
       return;
     }
 
@@ -537,11 +566,16 @@
       if (item) {
         item.title = title || domainName(url) || t("newShortcut");
         item.url = url;
+        if (icon) {
+          item.icon = icon;
+        } else {
+          delete item.icon;
+        }
         item.z = ++state.zCounter;
       }
       showToast(t("updated"));
     } else {
-      const item = shortcut(title || domainName(url) || t("newShortcut"), url, 0, 0);
+      const item = shortcut(title || domainName(url) || t("newShortcut"), url, 0, 0, icon);
       const offset = state.shortcuts.length % 6;
       item.x = Math.round(window.innerWidth / 2 - 54 + offset * 18);
       item.y = Math.round(Math.min(window.innerHeight - 160, 175 + offset * 22));
@@ -558,6 +592,54 @@
   async function copyShortcutUrl(item) {
     const copied = await writeClipboardText(item.url);
     showToast(copied ? t("copiedUrl") : t("copyFailed"));
+  }
+
+  async function handleIconFile() {
+    const file = els.iconFileInput.files?.[0];
+    if (!file) return;
+
+    try {
+      els.iconInput.value = await imageFileToDataUrl(file);
+      els.formError.textContent = "";
+    } catch {
+      els.formError.textContent = t("invalidIcon");
+    } finally {
+      els.iconFileInput.value = "";
+    }
+  }
+
+  async function imageFileToDataUrl(file) {
+    if (!file.type.startsWith("image/")) throw new Error("invalid image");
+    if (!globalThis.createImageBitmap) return readFileAsDataUrl(file);
+
+    let bitmap;
+    try {
+      bitmap = await createImageBitmap(file);
+    } catch {
+      return readFileAsDataUrl(file);
+    }
+
+    const target = 128;
+    const scale = Math.min(target / bitmap.width, target / bitmap.height, 1);
+    const width = Math.max(1, Math.round(bitmap.width * scale));
+    const height = Math.max(1, Math.round(bitmap.height * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext("2d");
+    context.clearRect(0, 0, width, height);
+    context.drawImage(bitmap, 0, 0, width, height);
+    bitmap.close?.();
+    return canvas.toDataURL("image/png");
+  }
+
+  function readFileAsDataUrl(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.addEventListener("load", () => resolve(String(reader.result || "")));
+      reader.addEventListener("error", () => reject(reader.error || new Error("read failed")));
+      reader.readAsDataURL(file);
+    });
   }
 
   async function writeClipboardText(text) {
@@ -606,7 +688,6 @@
   function toggleLibrary() {
     state.libraryOpen = !state.libraryOpen;
     render();
-    queueSave();
   }
 
   function updateClock() {
@@ -679,6 +760,22 @@
     }
   }
 
+  function normalizeIconUrl(rawValue) {
+    const raw = String(rawValue || "").trim();
+    if (!raw) return "";
+    if (/^data:image\/[a-z0-9.+-]+(;base64)?,/i.test(raw)) return raw;
+
+    const url = normalizeUrl(raw);
+    if (!url) return "";
+
+    try {
+      const parsed = new URL(url);
+      return parsed.protocol === "https:" ? parsed.href : "";
+    } catch {
+      return "";
+    }
+  }
+
   function looksLikeUrl(value) {
     const query = value.trim();
     return /^[a-z][a-z0-9+.-]*:\/\//i.test(query) || query.includes(".") || query.startsWith("localhost");
@@ -686,6 +783,10 @@
 
   function faviconUrl(url) {
     return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domainName(url))}&sz=64`;
+  }
+
+  function shortcutImageSrc(item) {
+    return item.icon || faviconUrl(item.url);
   }
 
   function domainName(url) {

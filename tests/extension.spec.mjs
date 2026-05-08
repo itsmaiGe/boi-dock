@@ -34,8 +34,11 @@ test("new tab override supports English freeform shortcuts", async () => {
     await expect(page.getByTestId("workspace")).toBeVisible();
     await expect(page.getByTestId("search-input")).toHaveAttribute("placeholder", "Search Google or enter a URL");
     await expect(page.getByTestId("library-toggle")).toBeVisible();
+    await expect(page.getByTestId("library-toggle")).toHaveAttribute("aria-expanded", "false");
+    await expect(page.getByTestId("library-toggle")).not.toHaveClass(/is-active/);
     await expect(page.getByTestId("add-shortcut")).toContainText("Add");
     await expect(page.locator(".library-header h2")).toHaveText("Library");
+    await expect(page.locator("#libraryPanel")).toHaveClass(/is-hidden/);
     await expect(page.getByTestId("arrange-shortcuts")).toHaveCount(0);
     await expect(page.locator("#floatingAdd")).toHaveCount(0);
     await expect(page.getByText("快捷库")).toHaveCount(0);
@@ -66,10 +69,21 @@ test("new tab override supports English freeform shortcuts", async () => {
     await expect(page.locator("#shortcutCount")).toHaveText("0 shortcuts");
     await expect(page.locator("#libraryMeta")).toHaveText("0 shortcuts");
 
-    await page.getByTestId("add-shortcut").hover();
-    await expect(page.getByTestId("add-shortcut")).toHaveCSS("background-color", "rgb(36, 41, 47)");
-    await expect(page.getByTestId("add-shortcut")).toHaveCSS("color", "rgb(255, 255, 255)");
-    await expect(page.getByTestId("add-shortcut")).toHaveCSS("box-shadow", "none");
+    const addBox = await page.getByTestId("add-shortcut").boundingBox();
+    expect(addBox).not.toBeNull();
+    await page.mouse.move(addBox.x + addBox.width / 2, addBox.y + addBox.height / 2);
+    await page.waitForTimeout(220);
+    const addHoverStyle = await page.getByTestId("add-shortcut").evaluate((node) => {
+      const style = getComputedStyle(node);
+      return {
+        background: style.backgroundColor,
+        color: style.color,
+        boxShadow: style.boxShadow
+      };
+    });
+    expect(addHoverStyle.background).toBe("rgb(36, 41, 47)");
+    expect(addHoverStyle.color).toBe("rgb(255, 255, 255)");
+    expect(addHoverStyle.boxShadow).toBe("none");
 
     await page.getByTestId("add-shortcut").click();
     await expect(page.getByText("Color")).toHaveCount(0);
@@ -87,6 +101,10 @@ test("new tab override supports English freeform shortcuts", async () => {
     await expect(page.locator(".shortcut-tile")).toHaveCount(1);
     await expect(page.locator("#shortcutCount")).toHaveText("1 shortcut");
     await expect(page.locator("#libraryMeta")).toHaveText("1 shortcut");
+    await expect(page.locator("#libraryPanel")).toHaveClass(/is-hidden/);
+    await page.getByTestId("library-toggle").click();
+    await expect(page.locator("#libraryPanel")).not.toHaveClass(/is-hidden/);
+    await expect(page.getByTestId("library-toggle")).toHaveAttribute("aria-expanded", "true");
 
     const firstLibraryRow = page.locator(".library-row").first();
     await firstLibraryRow.hover();
@@ -154,35 +172,62 @@ test("new tab override supports English freeform shortcuts", async () => {
       return toast && !toast.classList.contains("is-visible") && Number(getComputedStyle(toast).opacity) < 0.05;
     }, undefined, { timeout: 5000 });
 
-    await page.locator('.shortcut-tile[data-title="Codex Smoke"] [data-tile-menu]').click();
+    await page.locator('.shortcut-tile[data-title="Codex Smoke"]').click({ button: "right" });
     await page.getByRole("menuitem", { name: "Edit" }).click();
     await expect(page.getByText("Color")).toHaveCount(0);
     await expect(page.locator("#shortcutColor")).toHaveCount(0);
+    await expect(page.getByLabel("Icon")).toHaveAttribute("placeholder", "Optional icon URL");
+    await expect(page.getByRole("button", { name: "Upload" })).toBeVisible();
+    const customIconFile = path.join(userDataDir, "custom-icon.svg");
+    await fs.writeFile(customIconFile, '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="16" fill="#ffd43b"/><circle cx="32" cy="32" r="15" fill="#24292f"/></svg>');
+    await page.locator("#shortcutIconFile").setInputFiles(customIconFile);
+    await expect.poll(async () => page.locator("#shortcutIcon").inputValue(), { timeout: 5000 }).toMatch(/^data:image\/(png|svg\+xml)/);
     await page.getByRole("button", { name: "Save" }).click();
     await expect(createdTile.locator(".shortcut-icon")).toHaveCSS("background-color", "rgb(255, 255, 255)");
+    await expect(createdTile.locator(".shortcut-icon img")).toHaveAttribute("src", /^data:image\/(png|svg\+xml)/);
     const createdId = await createdTile.getAttribute("data-id");
     await expect(page.locator(`.library-row[data-id="${createdId}"] .library-row-icon`)).toHaveCSS("background-color", "rgb(255, 255, 255)");
+    await expect(page.locator(`.library-row[data-id="${createdId}"] .library-row-icon img`)).toHaveAttribute("src", /^data:image\/(png|svg\+xml)/);
 
     const stored = await page.evaluate(() => new Promise((resolve) => {
       setTimeout(() => chrome.storage.local.get(["hug-dock-state-v1"], resolve), 50);
     }));
     expect("version" in stored["hug-dock-state-v1"]).toBe(false);
+    expect("libraryOpen" in stored["hug-dock-state-v1"]).toBe(false);
     expect(stored["hug-dock-state-v1"].shortcuts.length).toBe(1);
     expect(stored["hug-dock-state-v1"].shortcuts.some((item) => "color" in item || "colorActive" in item)).toBe(false);
+    expect(stored["hug-dock-state-v1"].shortcuts[0].icon).toMatch(/^data:image\/(png|svg\+xml)/);
     await page.waitForFunction(() => {
       const toast = document.querySelector("#toast");
       return toast && !toast.classList.contains("is-visible") && Number(getComputedStyle(toast).opacity) < 0.05;
     }, undefined, { timeout: 5000 });
 
+    await page.evaluate(() => new Promise((resolve) => {
+      chrome.storage.local.get(["hug-dock-state-v1"], (storedState) => {
+        const nextState = storedState["hug-dock-state-v1"];
+        nextState.libraryOpen = true;
+        chrome.storage.local.set({ "hug-dock-state-v1": nextState }, resolve);
+      });
+    }));
+    await page.reload();
+    await expect(page.locator("#libraryPanel")).toHaveClass(/is-hidden/);
+    await expect(page.getByTestId("library-toggle")).toHaveAttribute("aria-expanded", "false");
+    await expect(page.locator('.shortcut-tile[data-title="Codex Smoke"]')).toBeVisible();
+    await page.getByTestId("library-toggle").click();
+    await expect(page.locator("#libraryPanel")).not.toHaveClass(/is-hidden/);
+
     await page.screenshot({ path: path.join(screenshotDir, "desktop.png"), fullPage: false });
     await page.setViewportSize({ width: 390, height: 844 });
     await page.reload();
     await expect(page.getByTestId("workspace")).toBeVisible();
+    await expect(page.locator("#libraryPanel")).toHaveClass(/is-hidden/);
     await page.waitForFunction(() => {
       const tiles = [...document.querySelectorAll(".shortcut-tile")];
       return tiles.length === 1 && tiles.every((tile) => Number(getComputedStyle(tile).opacity) > 0.98);
     }, undefined, { timeout: 5000 });
     await page.screenshot({ path: path.join(screenshotDir, "mobile.png"), fullPage: false });
+    await page.getByTestId("library-toggle").click();
+    await expect(page.locator("#libraryPanel")).not.toHaveClass(/is-hidden/);
 
     await page.route(/^https:\/\/aixiejuben\.com\/?$/, (route) => route.fulfill({
       status: 200,
@@ -214,6 +259,10 @@ test("new tab override follows Chinese Chrome UI language", async () => {
     await expect(page.locator("html")).toHaveAttribute("lang", "zh-CN");
     await expect(page.getByTestId("search-input")).toHaveAttribute("placeholder", "搜索 Google 或输入网址");
     await expect(page.getByTestId("add-shortcut")).toContainText("添加");
+    await expect(page.locator("#libraryPanel")).toHaveClass(/is-hidden/);
+    await expect(page.getByTestId("library-toggle")).toHaveAttribute("aria-expanded", "false");
+    await page.getByTestId("library-toggle").click();
+    await expect(page.locator("#libraryPanel")).not.toHaveClass(/is-hidden/);
     await expect(page.locator(".library-header h2")).toHaveText("快捷库");
     await expect(page.locator(".empty-library")).toHaveText("没有匹配项");
     await expect(page.locator("#shortcutCount")).toHaveText("0 个捷径");
@@ -223,6 +272,8 @@ test("new tab override follows Chinese Chrome UI language", async () => {
     await expect(page.locator("#dialogTitle")).toHaveText("添加快捷方式");
     await expect(page.getByLabel("名称")).toBeVisible();
     await expect(page.locator("#shortcutUrl")).toHaveAttribute("placeholder", "输入网址或域名");
+    await expect(page.getByLabel("图标")).toHaveAttribute("placeholder", "可选图标网址");
+    await expect(page.getByRole("button", { name: "上传" })).toBeVisible();
     await expect(page.getByRole("button", { name: "保存" })).toBeVisible();
     await page.getByRole("button", { name: "取消" }).click();
 

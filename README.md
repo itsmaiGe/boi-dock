@@ -1,6 +1,6 @@
 # BOI DOCK
 
-[Read this in Chinese](README.zh-CN.md)
+[中文](README.zh-CN.md)
 
 A freer Chrome new tab page.
 
@@ -15,6 +15,7 @@ Chrome's default new tab page is tidy, but rigid: fixed slots, fixed layout, fix
 - Allows overlapping shortcuts with no grid snapping.
 - Searches Google or opens URLs directly from the top bar.
 - Opens, filters, edits, deletes, and copies URLs from the library.
+- Supports custom shortcut icons when a site's favicon is missing.
 - Starts empty, without bundled default shortcuts.
 - Switches between English and Chinese based on Chrome's UI language.
 
@@ -48,7 +49,7 @@ Permissions:
 - `storage`: saves shortcuts and layout.
 - `clipboardWrite`: copies a shortcut URL when you click `Copy URL`.
 
-Shortcut icons are loaded by domain through Google's favicon service.
+Shortcut icons are loaded by domain through Google's favicon service unless you set a custom icon. Uploaded icons stay in local storage; custom icon URLs load from the URL you provide.
 
 ## License
 
