@@ -6,6 +6,10 @@
 
 Chrome 默认的新标签页太规整了：固定位置、固定数量、固定逻辑。BOI DOCK 想做的事情很小，就是把这块地方还给你。常用网站想放多少放多少，想拖到哪就拖到哪，甚至叠在一起也没问题。
 
+![BOI DOCK 主界面](docs/screenshots/boi-dock-home.png)
+
+![在 BOI DOCK 里添加快捷方式](docs/screenshots/boi-dock-add-shortcut.png)
+
 ## 它能做什么
 
 - 添加任意数量的快捷方式。
