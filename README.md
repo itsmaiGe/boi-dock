@@ -6,8 +6,6 @@ A freer Chrome new tab page.
 
 Chrome's default new tab page is tidy, but rigid: fixed slots, fixed layout, fixed assumptions. BOI DOCK keeps the page quiet and gives the space back to you. Add as many shortcuts as you need, drag them anywhere, and overlap them if that is how your desk works.
 
-![BOI DOCK home screen](store-assets/screenshots/01-freeform-shortcuts-1280x800.png)
-
 ## What It Does
 
 - Adds unlimited shortcuts.

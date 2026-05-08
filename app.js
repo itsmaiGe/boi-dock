@@ -65,7 +65,7 @@
       editShortcutLabel: "Edit {title}",
       deleteShortcutLabel: "Delete {title}",
       invalidUrl: "Invalid URL",
-      invalidIcon: "Icon must be an HTTPS image URL or uploaded image",
+      invalidIcon: "Icon must be an HTTPS image URL or an uploaded image under 2 MB",
       newShortcut: "New Shortcut",
       updated: "Updated",
       added: "Added",
@@ -104,7 +104,7 @@
       editShortcutLabel: "编辑 {title}",
       deleteShortcutLabel: "删除 {title}",
       invalidUrl: "网址格式不正确",
-      invalidIcon: "图标必须是 HTTPS 图片网址或上传的图片",
+      invalidIcon: "图标必须是 HTTPS 图片网址，或小于 2 MB 的上传图片",
       newShortcut: "新快捷方式",
       updated: "已更新",
       added: "已添加",
@@ -227,6 +227,10 @@
     renderLibrary();
     els.shortcutCount.textContent = countLabel(state.shortcuts.length);
     els.libraryMeta.textContent = countLabel(state.shortcuts.length);
+    renderLibraryState();
+  }
+
+  function renderLibraryState() {
     els.libraryPanel.classList.toggle("is-hidden", !state.libraryOpen);
     els.libraryToggle.classList.toggle("is-active", state.libraryOpen);
     els.libraryToggle.setAttribute("aria-expanded", String(state.libraryOpen));
@@ -610,27 +614,29 @@
 
   async function imageFileToDataUrl(file) {
     if (!file.type.startsWith("image/")) throw new Error("invalid image");
-    if (!globalThis.createImageBitmap) return readFileAsDataUrl(file);
-
-    let bitmap;
-    try {
-      bitmap = await createImageBitmap(file);
-    } catch {
-      return readFileAsDataUrl(file);
-    }
-
+    if (file.size > 2 * 1024 * 1024) throw new Error("image too large");
+    const source = await readFileAsDataUrl(file);
+    const image = await loadImage(source);
     const target = 128;
-    const scale = Math.min(target / bitmap.width, target / bitmap.height, 1);
-    const width = Math.max(1, Math.round(bitmap.width * scale));
-    const height = Math.max(1, Math.round(bitmap.height * scale));
+    const scale = Math.min(target / image.naturalWidth, target / image.naturalHeight, 1);
+    const width = Math.max(1, Math.round(image.naturalWidth * scale));
+    const height = Math.max(1, Math.round(image.naturalHeight * scale));
     const canvas = document.createElement("canvas");
     canvas.width = width;
     canvas.height = height;
     const context = canvas.getContext("2d");
     context.clearRect(0, 0, width, height);
-    context.drawImage(bitmap, 0, 0, width, height);
-    bitmap.close?.();
+    context.drawImage(image, 0, 0, width, height);
     return canvas.toDataURL("image/png");
+  }
+
+  function loadImage(src) {
+    return new Promise((resolve, reject) => {
+      const image = new Image();
+      image.addEventListener("load", () => resolve(image), { once: true });
+      image.addEventListener("error", () => reject(new Error("image load failed")), { once: true });
+      image.src = src;
+    });
   }
 
   function readFileAsDataUrl(file) {
@@ -687,7 +693,7 @@
 
   function toggleLibrary() {
     state.libraryOpen = !state.libraryOpen;
-    render();
+    renderLibraryState();
   }
 
   function updateClock() {
@@ -763,7 +769,7 @@
   function normalizeIconUrl(rawValue) {
     const raw = String(rawValue || "").trim();
     if (!raw) return "";
-    if (/^data:image\/[a-z0-9.+-]+(;base64)?,/i.test(raw)) return raw;
+    if (/^data:image\/(?:png|jpe?g|webp|gif);base64,/i.test(raw)) return raw;
 
     const url = normalizeUrl(raw);
     if (!url) return "";

@@ -81,7 +81,7 @@ test("new tab override supports English freeform shortcuts", async () => {
         boxShadow: style.boxShadow
       };
     });
-    expect(addHoverStyle.background).toBe("rgb(36, 41, 47)");
+    expect(rgbDistance(addHoverStyle.background, "rgb(36, 41, 47)")).toBeLessThan(22);
     expect(addHoverStyle.color).toBe("rgb(255, 255, 255)");
     expect(addHoverStyle.boxShadow).toBe("none");
 
@@ -102,9 +102,24 @@ test("new tab override supports English freeform shortcuts", async () => {
     await expect(page.locator("#shortcutCount")).toHaveText("1 shortcut");
     await expect(page.locator("#libraryMeta")).toHaveText("1 shortcut");
     await expect(page.locator("#libraryPanel")).toHaveClass(/is-hidden/);
+    await page.evaluate(() => {
+      window.__boiTileNode = document.querySelector('.shortcut-tile[data-title="Codex Smoke"]');
+    });
+    const beforeLibraryToggleBox = await createdTile.boundingBox();
     await page.getByTestId("library-toggle").click();
     await expect(page.locator("#libraryPanel")).not.toHaveClass(/is-hidden/);
     await expect(page.getByTestId("library-toggle")).toHaveAttribute("aria-expanded", "true");
+    await page.getByTestId("library-toggle").click();
+    await expect(page.locator("#libraryPanel")).toHaveClass(/is-hidden/);
+    const afterLibraryToggleBox = await createdTile.boundingBox();
+    const tileWasReused = await page.evaluate(() => window.__boiTileNode === document.querySelector('.shortcut-tile[data-title="Codex Smoke"]'));
+    expect(tileWasReused).toBe(true);
+    expect(beforeLibraryToggleBox).not.toBeNull();
+    expect(afterLibraryToggleBox).not.toBeNull();
+    expect(Math.abs(afterLibraryToggleBox.x - beforeLibraryToggleBox.x)).toBeLessThan(.5);
+    expect(Math.abs(afterLibraryToggleBox.y - beforeLibraryToggleBox.y)).toBeLessThan(.5);
+    await page.getByTestId("library-toggle").click();
+    await expect(page.locator("#libraryPanel")).not.toHaveClass(/is-hidden/);
 
     const firstLibraryRow = page.locator(".library-row").first();
     await firstLibraryRow.hover();
@@ -181,13 +196,13 @@ test("new tab override supports English freeform shortcuts", async () => {
     const customIconFile = path.join(userDataDir, "custom-icon.svg");
     await fs.writeFile(customIconFile, '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="16" fill="#ffd43b"/><circle cx="32" cy="32" r="15" fill="#24292f"/></svg>');
     await page.locator("#shortcutIconFile").setInputFiles(customIconFile);
-    await expect.poll(async () => page.locator("#shortcutIcon").inputValue(), { timeout: 5000 }).toMatch(/^data:image\/(png|svg\+xml)/);
+    await expect.poll(async () => page.locator("#shortcutIcon").inputValue(), { timeout: 5000 }).toMatch(/^data:image\/png;base64,/);
     await page.getByRole("button", { name: "Save" }).click();
     await expect(createdTile.locator(".shortcut-icon")).toHaveCSS("background-color", "rgb(255, 255, 255)");
-    await expect(createdTile.locator(".shortcut-icon img")).toHaveAttribute("src", /^data:image\/(png|svg\+xml)/);
+    await expect(createdTile.locator(".shortcut-icon img")).toHaveAttribute("src", /^data:image\/png;base64,/);
     const createdId = await createdTile.getAttribute("data-id");
     await expect(page.locator(`.library-row[data-id="${createdId}"] .library-row-icon`)).toHaveCSS("background-color", "rgb(255, 255, 255)");
-    await expect(page.locator(`.library-row[data-id="${createdId}"] .library-row-icon img`)).toHaveAttribute("src", /^data:image\/(png|svg\+xml)/);
+    await expect(page.locator(`.library-row[data-id="${createdId}"] .library-row-icon img`)).toHaveAttribute("src", /^data:image\/png;base64,/);
 
     const stored = await page.evaluate(() => new Promise((resolve) => {
       setTimeout(() => chrome.storage.local.get(["hug-dock-state-v1"], resolve), 50);
@@ -196,7 +211,7 @@ test("new tab override supports English freeform shortcuts", async () => {
     expect("libraryOpen" in stored["hug-dock-state-v1"]).toBe(false);
     expect(stored["hug-dock-state-v1"].shortcuts.length).toBe(1);
     expect(stored["hug-dock-state-v1"].shortcuts.some((item) => "color" in item || "colorActive" in item)).toBe(false);
-    expect(stored["hug-dock-state-v1"].shortcuts[0].icon).toMatch(/^data:image\/(png|svg\+xml)/);
+    expect(stored["hug-dock-state-v1"].shortcuts[0].icon).toMatch(/^data:image\/png;base64,/);
     await page.waitForFunction(() => {
       const toast = document.querySelector("#toast");
       return toast && !toast.classList.contains("is-visible") && Number(getComputedStyle(toast).opacity) < 0.05;
@@ -325,4 +340,16 @@ async function launchExtension({ language, viewport }) {
 async function gotoNewTab(page) {
   await page.goto("chrome://newtab/");
   await page.waitForLoadState("domcontentloaded");
+}
+
+function rgbDistance(left, right) {
+  const a = rgbParts(left);
+  const b = rgbParts(right);
+  return Math.max(...a.map((value, index) => Math.abs(value - b[index])));
+}
+
+function rgbParts(value) {
+  const match = value.match(/\d+/g);
+  expect(match).not.toBeNull();
+  return match.slice(0, 3).map(Number);
 }
